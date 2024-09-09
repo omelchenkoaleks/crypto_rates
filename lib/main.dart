@@ -1,52 +1,142 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:http/http.dart' as http;
 
 class CryptoCurrency {
   final String symbol;
-  final String price;
+  String price;
 
   CryptoCurrency({required this.symbol, required this.price});
 
   factory CryptoCurrency.fromJson(Map<String, dynamic> json) {
     return CryptoCurrency(
-      symbol: json['s'], // символ
-      price: json['c'], // текущая цена
+      symbol: json['symbol'],
+      price: json['price'],
     );
   }
 }
 
-class CryptoRealTimeScreen extends StatefulWidget {
-  const CryptoRealTimeScreen({super.key});
+class CryptoListScreen extends StatefulWidget {
+  const CryptoListScreen({super.key});
 
   @override
-  State<CryptoRealTimeScreen> createState() => _CryptoRealTimeScreenState();
+  State<CryptoListScreen> createState() => _CryptoListScreenState();
 }
 
-class _CryptoRealTimeScreenState extends State<CryptoRealTimeScreen> {
-  final WebSocketChannel channel = WebSocketChannel.connect(
-    Uri.parse('wss://stream.binance.com:9443/ws/!ticker@arr'),
-  );
-  List<CryptoCurrency> _cryptoList = [];
+class _CryptoListScreenState extends State<CryptoListScreen> {
+  final List<CryptoCurrency> _cryptoList = [];
+  bool _isLoading = false;
+  bool _isRefreshing = false;
+  int _currentPage = 0;
+  final int _perPage = 20;
+  final ScrollController _scrollController = ScrollController();
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
-    // Подписываемся на WebSocket
-    channel.stream.listen((data) {
-      final List<dynamic> jsonData = json.decode(data);
+    _fetchCryptoData();
+    _scrollController.addListener(_onScroll);
+    _startPeriodicRefresh();
+  }
 
+  Future<void> _fetchCryptoData() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http
+          .get(Uri.parse('https://api.binance.com/api/v3/ticker/price'));
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+
+        setState(() {
+          List<CryptoCurrency> newItems = data
+              .skip(_currentPage * _perPage)
+              .take(_perPage)
+              .map((json) => CryptoCurrency.fromJson(json))
+              .toList();
+
+          if (newItems.isEmpty) {
+            _isLoading = false;
+          } else {
+            _cryptoList.addAll(newItems);
+            _cryptoList.sort((a, b) => a.symbol.compareTo(b.symbol));
+            _currentPage++;
+          }
+        });
+      } else {
+        throw Exception('Failed to load crypto data');
+      }
+    } catch (e) {
+      print("Ошибка загрузки данных: $e");
+    } finally {
       setState(() {
-        _cryptoList =
-            jsonData.map((json) => CryptoCurrency.fromJson(json)).toList();
+        _isLoading = false;
       });
+    }
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels ==
+        _scrollController.position.maxScrollExtent) {
+      _fetchCryptoData();
+    }
+  }
+
+  Future<void> _refreshCryptoData() async {
+    setState(() {
+      _isRefreshing = true;
+    });
+
+    try {
+      final response = await http
+          .get(Uri.parse('https://api.binance.com/api/v3/ticker/price'));
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+
+        setState(() {
+          final newItems =
+              data.map((json) => CryptoCurrency.fromJson(json)).toList();
+          final Map<String, String> newPrices = {
+            for (var item in newItems) item.symbol: item.price
+          };
+
+          for (var crypto in _cryptoList) {
+            if (newPrices.containsKey(crypto.symbol)) {
+              crypto.price = newPrices[crypto.symbol]!;
+            }
+          }
+        });
+      } else {
+        throw Exception('Failed to load crypto data');
+      }
+    } catch (e) {
+      print("Ошибка обновления данных: $e");
+    } finally {
+      setState(() {
+        _isRefreshing = false;
+      });
+    }
+  }
+
+  void _startPeriodicRefresh() {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (Timer timer) {
+      _refreshCryptoData();
     });
   }
 
   @override
   void dispose() {
-    channel.sink.close(); // Закрываем WebSocket соединение
+    _scrollController.dispose();
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -54,101 +144,36 @@ class _CryptoRealTimeScreenState extends State<CryptoRealTimeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Crypto Prices (Real Time)'),
+        title: const Text('Crypto Prices'),
       ),
-      body: _cryptoList.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: _cryptoList.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(_cryptoList[index].symbol),
-                  subtitle: Text('Price: ${_cryptoList[index].price}'),
-                );
-              },
+      body: Stack(
+        children: [
+          _cryptoList.isEmpty && !_isLoading
+              ? const Center(child: Text('No data available'))
+              : ListView.builder(
+                  controller: _scrollController,
+                  itemCount: _cryptoList.length + (_isLoading ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == _cryptoList.length) {
+                      return Container();
+                    }
+                    return ListTile(
+                      title: Text(_cryptoList[index].symbol),
+                      subtitle: Text('Price: ${_cryptoList[index].price}'),
+                    );
+                  },
+                ),
+          if (_isLoading || _isRefreshing)
+            const Align(
+              alignment: Alignment.center,
+              child: CircularProgressIndicator(),
             ),
+        ],
+      ),
     );
   }
 }
 
 void main() {
-  runApp(const MaterialApp(home: CryptoRealTimeScreen()));
+  runApp(const MaterialApp(home: CryptoListScreen()));
 }
-
-
-
-
-// import 'dart:convert';
-
-// import 'package:flutter/material.dart';
-// import 'package:http/http.dart' as http;
-
-// class CryptoCurrency {
-//   final String symbol;
-//   final String price;
-
-//   CryptoCurrency({required this.symbol, required this.price});
-
-//   factory CryptoCurrency.fromJson(Map<String, dynamic> json) {
-//     return CryptoCurrency(
-//       symbol: json['symbol'],
-//       price: json['price'],
-//     );
-//   }
-// }
-
-// class CryptoListScreen extends StatefulWidget {
-//   const CryptoListScreen({super.key});
-
-//   @override
-//   State<CryptoListScreen> createState() => _CryptoListScreenState();
-// }
-
-// class _CryptoListScreenState extends State<CryptoListScreen> {
-//   List<CryptoCurrency> _cryptoList = [];
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _fetchCryptoData();
-//   }
-
-//   Future<void> _fetchCryptoData() async {
-//     final response = await http
-//         .get(Uri.parse('https://api.binance.com/api/v3/ticker/price'));
-
-//     if (response.statusCode == 200) {
-//       List<dynamic> data = json.decode(response.body);
-//       setState(() {
-//         _cryptoList =
-//             data.map((json) => CryptoCurrency.fromJson(json)).toList();
-//       });
-//     } else {
-//       throw Exception('Failed to load crypto data');
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Crypto Prices'),
-//       ),
-//       body: _cryptoList.isEmpty
-//           ? const Center(child: CircularProgressIndicator())
-//           : ListView.builder(
-//               itemCount: _cryptoList.length,
-//               itemBuilder: (context, index) {
-//                 return ListTile(
-//                   title: Text(_cryptoList[index].symbol),
-//                   subtitle: Text('Price: ${_cryptoList[index].price}'),
-//                 );
-//               },
-//             ),
-//     );
-//   }
-// }
-
-// void main() {
-//   runApp(const MaterialApp(home: CryptoListScreen()));
-// }

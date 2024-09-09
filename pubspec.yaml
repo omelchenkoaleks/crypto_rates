@@ -9,7 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  web_socket_channel: ^3.0.1
+  # web_socket_channel: ^3.0.1
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:
