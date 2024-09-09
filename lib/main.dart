@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:crypto_rates/utility/logger.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -27,12 +28,14 @@ class CryptoListScreen extends StatefulWidget {
 
 class _CryptoListScreenState extends State<CryptoListScreen> {
   final List<CryptoCurrency> _cryptoList = [];
+  List<CryptoCurrency> _filteredCryptoList = [];
   bool _isLoading = false;
   bool _isRefreshing = false;
   int _currentPage = 0;
   final int _perPage = 20;
   final ScrollController _scrollController = ScrollController();
   Timer? _refreshTimer;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -40,6 +43,7 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
     _fetchCryptoData();
     _scrollController.addListener(_onScroll);
     _startPeriodicRefresh();
+    _searchController.addListener(_filterCryptoList);
   }
 
   Future<void> _fetchCryptoData() async {
@@ -69,13 +73,14 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
             _cryptoList.addAll(newItems);
             _cryptoList.sort((a, b) => a.symbol.compareTo(b.symbol));
             _currentPage++;
+            _filterCryptoList();
           }
         });
       } else {
         throw Exception('Failed to load crypto data');
       }
     } catch (e) {
-      print("Ошибка загрузки данных: $e");
+      logger.e("Ошибка загрузки данных: $e");
     } finally {
       setState(() {
         _isLoading = false;
@@ -114,12 +119,13 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
               crypto.price = newPrices[crypto.symbol]!;
             }
           }
+          _filterCryptoList();
         });
       } else {
         throw Exception('Failed to load crypto data');
       }
     } catch (e) {
-      print("Ошибка обновления данных: $e");
+      logger.e("Ошибка обновления данных: $e");
     } finally {
       setState(() {
         _isRefreshing = false;
@@ -133,10 +139,21 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
     });
   }
 
+  void _filterCryptoList() {
+    final query = _searchController.text.toLowerCase();
+
+    setState(() {
+      _filteredCryptoList = _cryptoList
+          .where((crypto) => crypto.symbol.toLowerCase().contains(query))
+          .toList();
+    });
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
     _refreshTimer?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -145,21 +162,36 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Crypto Prices'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50.0),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Search...',
+              ),
+              onChanged: (_) => _filterCryptoList(),
+            ),
+          ),
+        ),
       ),
       body: Stack(
         children: [
-          _cryptoList.isEmpty && !_isLoading
+          _filteredCryptoList.isEmpty && !_isLoading
               ? const Center(child: Text('No data available'))
               : ListView.builder(
                   controller: _scrollController,
-                  itemCount: _cryptoList.length + (_isLoading ? 1 : 0),
+                  itemCount: _filteredCryptoList.length + (_isLoading ? 1 : 0),
                   itemBuilder: (context, index) {
-                    if (index == _cryptoList.length) {
+                    if (index == _filteredCryptoList.length) {
                       return Container();
                     }
                     return ListTile(
-                      title: Text(_cryptoList[index].symbol),
-                      subtitle: Text('Price: ${_cryptoList[index].price}'),
+                      title: Text(_filteredCryptoList[index].symbol),
+                      subtitle:
+                          Text('Price: ${_filteredCryptoList[index].price}'),
                     );
                   },
                 ),
