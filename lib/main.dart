@@ -6,15 +6,22 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class CryptoCurrency {
-  final String symbol;
+  String symbol;
   String price;
+  String iconUrl;
 
-  CryptoCurrency({required this.symbol, required this.price});
+  CryptoCurrency({
+    required this.symbol,
+    required this.price,
+    required this.iconUrl,
+  });
 
   factory CryptoCurrency.fromJson(Map<String, dynamic> json) {
+    final symbol = json['symbol'];
     return CryptoCurrency(
-      symbol: json['symbol'],
+      symbol: symbol,
       price: json['price'],
+      iconUrl: 'https://www.binance.com/images/crypto-icons/$symbol.png',
     );
   }
 }
@@ -188,10 +195,50 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
                     if (index == _filteredCryptoList.length) {
                       return Container();
                     }
+                    final crypto = _filteredCryptoList[index];
                     return ListTile(
-                      title: Text(_filteredCryptoList[index].symbol),
-                      subtitle:
-                          Text('Price: ${_filteredCryptoList[index].price}'),
+                      leading: crypto.iconUrl.isNotEmpty
+                          ? Image.network(
+                              crypto.iconUrl,
+                              width: 40,
+                              height: 40,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 40,
+                                  height: 40,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[300],
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    crypto.symbol.substring(0, 3).toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
+                              width: 40,
+                              height: 40,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                crypto.symbol.substring(0, 3).toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                      title: Text(crypto.symbol),
+                      subtitle: Text('Price: ${crypto.price}'),
                     );
                   },
                 ),
