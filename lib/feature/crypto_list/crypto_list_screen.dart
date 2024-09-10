@@ -5,6 +5,152 @@ import 'package:crypto_rates/repository/currency_repository.dart';
 import 'package:crypto_rates/utility/logger.dart';
 import 'package:flutter/material.dart';
 
+// class CryptoListScreen extends StatefulWidget {
+//   const CryptoListScreen({super.key});
+
+//   @override
+//   State<CryptoListScreen> createState() => _CryptoListScreenState();
+// }
+
+// class _CryptoListScreenState extends State<CryptoListScreen> {
+//   late ScrollController _scrollController;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     // context.read<CryptoListCubit>().fetchCryptoData();
+
+//     _scrollController = ScrollController();
+//     _scrollController.addListener(() {
+//       if (_scrollController.position.pixels ==
+//               _scrollController.position.maxScrollExtent &&
+//           !context.read<CryptoListCubit>().state.isLoading) {
+//         context.read<CryptoListCubit>().fetchCryptoData();
+//       }
+//     });
+//   }
+
+//   String formatSymbol(String symbol) {
+//     final pattern = RegExp(r'([A-Z]+)([A-Z]{3,4})$');
+//     final match = pattern.firstMatch(symbol);
+
+//     if (match != null) {
+//       final baseCurrency = match.group(1);
+//       final quoteCurrency = match.group(2);
+//       return '$baseCurrency $quoteCurrency';
+//     }
+
+//     return symbol;
+//   }
+
+//   @override
+//   void dispose() {
+//     _scrollController.dispose();
+//     super.dispose();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('Crypto Prices'),
+//         bottom: PreferredSize(
+//           preferredSize: const Size.fromHeight(50.0),
+//           child: Padding(
+//             padding: const EdgeInsets.all(8.0),
+//             child: TextField(
+//               decoration: const InputDecoration(
+//                 border: OutlineInputBorder(),
+//                 hintText: 'Search...',
+//               ),
+//               onChanged: (query) {
+//                 context.read<CryptoListCubit>().filterCryptoList(query);
+//               },
+//             ),
+//           ),
+//         ),
+//       ),
+//       body: BlocBuilder<CryptoListCubit, CryptoListState>(
+//         builder: (context, state) {
+//           if (state.isLoading && state.cryptoList.isEmpty) {
+//             return const Center(child: CircularProgressIndicator());
+//           }
+
+//           if (state.filteredCryptoList.isEmpty && !state.isLoading) {
+//             return const Center(child: Text('No data available'));
+//           }
+
+//           return Stack(
+//             children: [
+//               ListView.builder(
+//                 controller: _scrollController,
+//                 itemCount:
+//                     state.filteredCryptoList.length + (state.isLoading ? 1 : 0),
+//                 itemBuilder: (context, index) {
+//                   if (index == state.filteredCryptoList.length) {
+//                     return const Center(child: CircularProgressIndicator());
+//                   }
+
+//                   final crypto = state.filteredCryptoList[index];
+//                   return ListTile(
+//                     leading: crypto.iconUrl.isNotEmpty
+//                         ? Image.network(
+//                             crypto.iconUrl,
+//                             width: 40,
+//                             height: 40,
+//                             errorBuilder: (context, error, stackTrace) {
+//                               return Container(
+//                                 width: 40,
+//                                 height: 40,
+//                                 alignment: Alignment.center,
+//                                 decoration: BoxDecoration(
+//                                   color: Colors.grey[300],
+//                                   shape: BoxShape.circle,
+//                                 ),
+//                                 child: Text(
+//                                   formatSymbol(crypto.symbol),
+//                                   style: const TextStyle(
+//                                     fontSize: 16,
+//                                     fontWeight: FontWeight.bold,
+//                                   ),
+//                                 ),
+//                               );
+//                             },
+//                           )
+//                         : Container(
+//                             width: 40,
+//                             height: 40,
+//                             alignment: Alignment.center,
+//                             decoration: BoxDecoration(
+//                               color: Colors.grey[300],
+//                               shape: BoxShape.circle,
+//                             ),
+//                             child: Text(
+//                               formatSymbol(crypto.symbol).split(' ')[0],
+//                               style: const TextStyle(
+//                                 fontSize: 12,
+//                                 fontWeight: FontWeight.bold,
+//                               ),
+//                             ),
+//                           ),
+//                     title: Text(formatSymbol(crypto.symbol)),
+//                     subtitle: Text('Price: ${crypto.price}'),
+//                   );
+//                 },
+//               ),
+//               if (state.isRefreshing)
+//                 const Align(
+//                   alignment: Alignment.center,
+//                   child: CircularProgressIndicator(),
+//                 ),
+//             ],
+//           );
+//         },
+//       ),
+//     );
+//   }
+// }
+
 class CryptoListScreen extends StatefulWidget {
   const CryptoListScreen({super.key});
 
@@ -87,7 +233,7 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
   }
 
   void startPeriodicRefresh() {
-    refreshTimer = Timer.periodic(const Duration(seconds: 30), (Timer timer) {
+    refreshTimer = Timer.periodic(const Duration(seconds: 10), (Timer timer) {
       refreshCryptoData();
     });
   }

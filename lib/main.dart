@@ -277,9 +277,42 @@
 //   }
 // }
 
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+// import 'package:crypto_rates/feature/crypto_list/crypto_list_screen.dart';
+// import 'package:flutter/material.dart';
+
+// void main() {
+//   runApp(const MaterialApp(
+//     home: CryptoListScreen(),
+//   ));
+// }
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 import 'package:crypto_rates/feature/crypto_list/crypto_list_screen.dart';
+import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 void main() {
-  runApp(const MaterialApp(home: CryptoListScreen()));
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (context) => CryptoListCubit(),
+          ),
+        ],
+        child: const MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: CryptoListScreen(),
+        ));
+  }
 }
