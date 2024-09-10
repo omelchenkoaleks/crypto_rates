@@ -1,258 +1,298 @@
-import 'dart:async';
-import 'dart:convert';
-
-import 'package:crypto_rates/utility/logger.dart';
+import 'package:crypto_rates/data/repository/crypto_currency_impl.dart';
+import 'package:crypto_rates/data/sources/remote_data_source.dart';
+import 'package:crypto_rates/domain/usecases/get_crypto_prices.dart';
+import 'package:crypto_rates/presentation/cubit/crypto_cubit.dart';
+import 'package:crypto_rates/presentation/screen/crypto_list_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 
-class CryptoCurrency {
-  String symbol;
-  String price;
-  String iconUrl;
+void main() {
+  final remoteDataSource = RemoteDataSource(http.Client());
+  final cryptoRepository = CryptoRepositoryImpl(remoteDataSource);
+  final getCryptoPrices = GetCryptoPrices(cryptoRepository);
 
-  CryptoCurrency({
-    required this.symbol,
-    required this.price,
-    required this.iconUrl,
-  });
-
-  factory CryptoCurrency.fromJson(Map<String, dynamic> json) {
-    final symbol = json['symbol'];
-    return CryptoCurrency(
-      symbol: symbol,
-      price: json['price'],
-      iconUrl: 'https://www.binance.com/images/crypto-icons/$symbol.png',
-    );
-  }
+  runApp(MyApp(getCryptoPrices: getCryptoPrices));
 }
 
-class CryptoListScreen extends StatefulWidget {
-  const CryptoListScreen({super.key});
+class MyApp extends StatelessWidget {
+  final GetCryptoPrices getCryptoPrices;
 
-  @override
-  State<CryptoListScreen> createState() => _CryptoListScreenState();
-}
-
-class _CryptoListScreenState extends State<CryptoListScreen> {
-  final List<CryptoCurrency> _cryptoList = [];
-  List<CryptoCurrency> _filteredCryptoList = [];
-  bool _isLoading = false;
-  bool _isRefreshing = false;
-  int _currentPage = 0;
-  final int _perPage = 20;
-  final ScrollController _scrollController = ScrollController();
-  Timer? _refreshTimer;
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchCryptoData();
-    _scrollController.addListener(_onScroll);
-    _startPeriodicRefresh();
-    _searchController.addListener(_filterCryptoList);
-  }
-
-  Future<void> _fetchCryptoData() async {
-    if (_isLoading) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final response = await http
-          .get(Uri.parse('https://api.binance.com/api/v3/ticker/price'));
-
-      if (response.statusCode == 200) {
-        List<dynamic> data = json.decode(response.body);
-
-        setState(() {
-          List<CryptoCurrency> newItems = data
-              .skip(_currentPage * _perPage)
-              .take(_perPage)
-              .map((json) => CryptoCurrency.fromJson(json))
-              .toList();
-
-          if (newItems.isEmpty) {
-            _isLoading = false;
-          } else {
-            _cryptoList.addAll(newItems);
-            _cryptoList.sort((a, b) => a.symbol.compareTo(b.symbol));
-            _currentPage++;
-            _filterCryptoList();
-          }
-        });
-      } else {
-        throw Exception('Failed to load crypto data');
-      }
-    } catch (e) {
-      logger.e("Ошибка загрузки данных: $e");
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels ==
-        _scrollController.position.maxScrollExtent) {
-      _fetchCryptoData();
-    }
-  }
-
-  Future<void> _refreshCryptoData() async {
-    setState(() {
-      _isRefreshing = true;
-    });
-
-    try {
-      final response = await http
-          .get(Uri.parse('https://api.binance.com/api/v3/ticker/price'));
-
-      if (response.statusCode == 200) {
-        List<dynamic> data = json.decode(response.body);
-
-        setState(() {
-          final newItems =
-              data.map((json) => CryptoCurrency.fromJson(json)).toList();
-          final Map<String, String> newPrices = {
-            for (var item in newItems) item.symbol: item.price
-          };
-
-          for (var crypto in _cryptoList) {
-            if (newPrices.containsKey(crypto.symbol)) {
-              crypto.price = newPrices[crypto.symbol]!;
-            }
-          }
-          _filterCryptoList();
-        });
-      } else {
-        throw Exception('Failed to load crypto data');
-      }
-    } catch (e) {
-      logger.e("Ошибка обновления данных: $e");
-    } finally {
-      setState(() {
-        _isRefreshing = false;
-      });
-    }
-  }
-
-  void _startPeriodicRefresh() {
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (Timer timer) {
-      _refreshCryptoData();
-    });
-  }
-
-  void _filterCryptoList() {
-    final query = _searchController.text.toLowerCase();
-
-    setState(() {
-      _filteredCryptoList = _cryptoList
-          .where((crypto) => crypto.symbol.toLowerCase().contains(query))
-          .toList();
-    });
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    _refreshTimer?.cancel();
-    _searchController.dispose();
-    super.dispose();
-  }
+  const MyApp({super.key, required this.getCryptoPrices});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Crypto Prices'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50.0),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Search...',
-              ),
-              onChanged: (_) => _filterCryptoList(),
-            ),
-          ),
-        ),
-      ),
-      body: Stack(
-        children: [
-          _filteredCryptoList.isEmpty && !_isLoading
-              ? const Center(child: Text('No data available'))
-              : ListView.builder(
-                  controller: _scrollController,
-                  itemCount: _filteredCryptoList.length + (_isLoading ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == _filteredCryptoList.length) {
-                      return Container();
-                    }
-                    final crypto = _filteredCryptoList[index];
-                    return ListTile(
-                      leading: crypto.iconUrl.isNotEmpty
-                          ? Image.network(
-                              crypto.iconUrl,
-                              width: 40,
-                              height: 40,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: 40,
-                                  height: 40,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[300],
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Text(
-                                    crypto.symbol.substring(0, 3).toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                );
-                              },
-                            )
-                          : Container(
-                              width: 40,
-                              height: 40,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[300],
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                crypto.symbol.substring(0, 3).toUpperCase(),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                      title: Text(crypto.symbol),
-                      subtitle: Text('Price: ${crypto.price}'),
-                    );
-                  },
-                ),
-          if (_isLoading || _isRefreshing)
-            const Align(
-              alignment: Alignment.center,
-              child: CircularProgressIndicator(),
-            ),
-        ],
+    return MaterialApp(
+      home: BlocProvider(
+        create: (_) => CryptoCubit(getCryptoPrices),
+        child: const CryptoListScreen(),
       ),
     );
   }
 }
 
-void main() {
-  runApp(const MaterialApp(home: CryptoListScreen()));
-}
+
+
+
+// import 'dart:async';
+// import 'dart:convert';
+
+// import 'package:crypto_rates/domain/entity/crypto_currency.dart';
+// import 'package:crypto_rates/shared/logger.dart';
+// import 'package:flutter/material.dart';
+// import 'package:http/http.dart' as http;
+
+// class CryptoListScreen extends StatefulWidget {
+//   const CryptoListScreen({super.key});
+
+//   @override
+//   State<CryptoListScreen> createState() => _CryptoListScreenState();
+// }
+
+// class _CryptoListScreenState extends State<CryptoListScreen> {
+//   final List<CryptoCurrency> cryptoList = [];
+//   List<CryptoCurrency> filteredCryptoList = [];
+//   bool isLoading = false;
+//   bool isRefreshing = false;
+//   int currentPage = 0;
+//   int perPage = 20;
+//   final ScrollController scrollController = ScrollController();
+//   Timer? refreshTimer;
+//   final TextEditingController searchController = TextEditingController();
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     fetchCryptoData();
+//     scrollController.addListener(onScroll);
+//     startPeriodicRefresh();
+//     searchController.addListener(filterCryptoList);
+//   }
+
+//   Future<void> fetchCryptoData() async {
+//     if (isLoading) return;
+
+//     setState(() {
+//       isLoading = true;
+//     });
+
+//     try {
+//       // Получаем цены с Binance
+//       final response = await http
+//           .get(Uri.parse('https://api.binance.com/api/v3/ticker/price'));
+
+//       if (response.statusCode == 200) {
+//         List<dynamic> binanceData = json.decode(response.body);
+
+//         // Получаем иконки с CoinGecko
+//         final iconResponse = await http.get(Uri.parse(
+//             'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd'));
+
+//         if (iconResponse.statusCode == 200) {
+//           List<dynamic> iconData = json.decode(iconResponse.body);
+
+//           setState(() {
+//             // Соединяем данные с Binance и CoinGecko
+//             List<CryptoCurrency> newItems = binanceData
+//                 .skip(currentPage * perPage)
+//                 .take(perPage)
+//                 .map((binanceJson) {
+//               final symbol = binanceJson['symbol'];
+//               final baseCurrency =
+//                   symbol.split(RegExp(r"[-/]"))[0].toLowerCase();
+
+//               // Ищем иконку для символа в данных CoinGecko
+//               final iconUrl = iconData.firstWhere(
+//                 (coin) => coin['symbol'] == baseCurrency,
+//                 orElse: () => {'image': ''},
+//               )['image'];
+
+//               return CryptoCurrency.fromBinanceJson(binanceJson, iconUrl ?? '');
+//             }).toList();
+
+//             if (newItems.isEmpty) {
+//               isLoading = false;
+//             } else {
+//               cryptoList.addAll(newItems);
+//               cryptoList.sort((a, b) => a.symbol.compareTo(b.symbol));
+//               currentPage++;
+//               filterCryptoList();
+//             }
+//           });
+//         } else {
+//           throw Exception('Failed to load icons');
+//         }
+//       } else {
+//         throw Exception('Failed to load crypto data');
+//       }
+//     } catch (e) {
+//       logger.e("Ошибка загрузки данных: $e");
+//     } finally {
+//       setState(() {
+//         isLoading = false;
+//       });
+//     }
+//   }
+
+//   void onScroll() {
+//     if (scrollController.position.pixels ==
+//         scrollController.position.maxScrollExtent) {
+//       fetchCryptoData();
+//     }
+//   }
+
+//   Future<void> refreshCryptoData() async {
+//     setState(() {
+//       isRefreshing = true;
+//     });
+
+//     try {
+//       final response = await http
+//           .get(Uri.parse('https://api.binance.com/api/v3/ticker/price'));
+
+//       if (response.statusCode == 200) {
+//         List<dynamic> data = json.decode(response.body);
+
+//         setState(() {
+//           final newItems = data
+//               .map((json) => CryptoCurrency.fromBinanceJson(json, ''))
+//               .toList();
+//           final Map<String, String> newPrices = {
+//             for (var item in newItems) item.symbol: item.price
+//           };
+
+//           for (var crypto in cryptoList) {
+//             if (newPrices.containsKey(crypto.symbol)) {
+//               crypto.price = newPrices[crypto.symbol]!;
+//             }
+//           }
+//           filterCryptoList();
+//         });
+//       } else {
+//         throw Exception('Failed to load crypto data');
+//       }
+//     } catch (e) {
+//       logger.e("Ошибка обновления данных: $e");
+//     } finally {
+//       setState(() {
+//         isRefreshing = false;
+//       });
+//     }
+//   }
+
+//   void startPeriodicRefresh() {
+//     refreshTimer = Timer.periodic(const Duration(seconds: 30), (Timer timer) {
+//       refreshCryptoData();
+//     });
+//   }
+
+//   void filterCryptoList() {
+//     final query = searchController.text.toLowerCase();
+
+//     setState(() {
+//       filteredCryptoList = cryptoList
+//           .where((crypto) => crypto.symbol.toLowerCase().contains(query))
+//           .toList();
+//     });
+//   }
+
+//   @override
+//   void dispose() {
+//     scrollController.dispose();
+//     refreshTimer?.cancel();
+//     searchController.dispose();
+//     super.dispose();
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('Crypto Prices'),
+//         bottom: PreferredSize(
+//           preferredSize: const Size.fromHeight(50.0),
+//           child: Padding(
+//             padding: const EdgeInsets.all(8.0),
+//             child: TextField(
+//               controller: searchController,
+//               decoration: const InputDecoration(
+//                 border: OutlineInputBorder(),
+//                 hintText: 'Search...',
+//               ),
+//               onChanged: (_) => filterCryptoList(),
+//             ),
+//           ),
+//         ),
+//       ),
+//       body: Stack(
+//         children: [
+//           filteredCryptoList.isEmpty && !isLoading
+//               ? const Center(child: Text('No data available'))
+//               : ListView.builder(
+//                   controller: scrollController,
+//                   itemCount: filteredCryptoList.length + (isLoading ? 1 : 0),
+//                   itemBuilder: (context, index) {
+//                     if (index == filteredCryptoList.length) {
+//                       return Container();
+//                     }
+//                     final crypto = filteredCryptoList[index];
+//                     return ListTile(
+//                       leading: crypto.iconUrl.isNotEmpty
+//                           ? Image.network(
+//                               crypto.iconUrl,
+//                               width: 40,
+//                               height: 40,
+//                               errorBuilder: (context, error, stackTrace) {
+//                                 return Container(
+//                                   width: 40,
+//                                   height: 40,
+//                                   alignment: Alignment.center,
+//                                   decoration: BoxDecoration(
+//                                     color: Colors.grey[300],
+//                                     shape: BoxShape.circle,
+//                                   ),
+//                                   child: Text(
+//                                     crypto.symbol.substring(0, 3).toUpperCase(),
+//                                     style: const TextStyle(
+//                                       fontSize: 16,
+//                                       fontWeight: FontWeight.bold,
+//                                     ),
+//                                   ),
+//                                 );
+//                               },
+//                             )
+//                           : Container(
+//                               width: 40,
+//                               height: 40,
+//                               alignment: Alignment.center,
+//                               decoration: BoxDecoration(
+//                                 color: Colors.grey[300],
+//                                 shape: BoxShape.circle,
+//                               ),
+//                               child: Text(
+//                                 crypto.symbol.substring(0, 3).toUpperCase(),
+//                                 style: const TextStyle(
+//                                   fontSize: 16,
+//                                   fontWeight: FontWeight.bold,
+//                                 ),
+//                               ),
+//                             ),
+//                       title: Text(crypto.symbol),
+//                       subtitle: Text('Price: ${crypto.price}'),
+//                     );
+//                   },
+//                 ),
+//           if (isLoading || isRefreshing)
+//             const Align(
+//               alignment: Alignment.center,
+//               child: CircularProgressIndicator(),
+//             ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+
+// void main() {
+//   runApp(const MaterialApp(home: CryptoListScreen()));
+// }
