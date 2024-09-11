@@ -7,6 +7,8 @@ class CryptoListState {
   final List<CryptoCurrency> filteredCryptoList;
   final int currentPage;
   final String searchQuery;
+  final String baseCurrencyPrice;
+  final String quoteCurrencyPrice;
 
   CryptoListState({
     required this.isLoading,
@@ -15,6 +17,8 @@ class CryptoListState {
     required this.filteredCryptoList,
     required this.currentPage,
     required this.searchQuery,
+    required this.baseCurrencyPrice,
+    required this.quoteCurrencyPrice,
   });
 
   CryptoListState.initial()
@@ -23,7 +27,9 @@ class CryptoListState {
         cryptoList = [],
         filteredCryptoList = [],
         currentPage = 0,
-        searchQuery = '';
+        searchQuery = '',
+        baseCurrencyPrice = '',
+        quoteCurrencyPrice = '';
 
   CryptoListState copyWith({
     bool? isLoading,
@@ -32,6 +38,8 @@ class CryptoListState {
     List<CryptoCurrency>? filteredCryptoList,
     int? currentPage,
     String? searchQuery,
+    String? baseCurrencyPrice,
+    String? quoteCurrencyPrice,
   }) {
     return CryptoListState(
       isLoading: isLoading ?? this.isLoading,
@@ -40,6 +48,8 @@ class CryptoListState {
       filteredCryptoList: filteredCryptoList ?? this.filteredCryptoList,
       currentPage: currentPage ?? this.currentPage,
       searchQuery: searchQuery ?? this.searchQuery,
+      baseCurrencyPrice: baseCurrencyPrice ?? this.baseCurrencyPrice,
+      quoteCurrencyPrice: quoteCurrencyPrice ?? this.quoteCurrencyPrice,
     );
   }
 }

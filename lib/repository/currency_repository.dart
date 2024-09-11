@@ -35,13 +35,15 @@ class CurrencyRepository {
         .map((binanceJson) {
       final symbol = binanceJson['symbol'];
       final baseCurrency = _extractBaseCurrency(symbol);
+      final quoteCurrency = _extractQuoteCurrency(symbol);
 
       final iconUrl = iconData.firstWhere(
         (coin) => coin['symbol'] == baseCurrency,
         orElse: () => {'image': ''},
       )['image'];
 
-      return CryptoCurrency.fromBinanceJson(binanceJson, iconUrl ?? '');
+      return CryptoCurrency.fromBinanceJson(
+          binanceJson, iconUrl ?? '', baseCurrency, quoteCurrency);
     }).toList();
   }
 
@@ -54,8 +56,21 @@ class CurrencyRepository {
     }
 
     List<dynamic> data = json.decode(response.body);
-    final newItems =
-        data.map((json) => CryptoCurrency.fromBinanceJson(json, '')).toList();
+
+    final List<Future<CryptoCurrency>> newItemsFutures = data.map((json) async {
+      final symbol = json['symbol'];
+
+      final baseCurrency = _extractBaseCurrency(symbol);
+      final quoteCurrency = _extractQuoteCurrency(symbol);
+
+      final baseCurrencyPriceInUSD = await fetchPriceInUSD(baseCurrency);
+      final quoteCurrencyPriceInUSD = await fetchPriceInUSD(quoteCurrency);
+
+      return CryptoCurrency.fromBinanceJson(json, '',
+          baseCurrencyPriceInUSD ?? '', quoteCurrencyPriceInUSD ?? '');
+    }).toList();
+
+    final List<CryptoCurrency> newItems = await Future.wait(newItemsFutures);
 
     final Map<String, String> newPrices = {
       for (var item in newItems) item.symbol: item.price
@@ -63,17 +78,63 @@ class CurrencyRepository {
 
     for (var crypto in cryptoList) {
       if (newPrices.containsKey(crypto.symbol)) {
-        crypto.price = newPrices[crypto.symbol]!;
+        final newItem =
+            newItems.firstWhere((item) => item.symbol == crypto.symbol);
+
+        crypto.price = newItem.price;
+
+        crypto.baseCurrencyPriceInUSD = newItem.baseCurrencyPriceInUSD;
+
+        crypto.quoteCurrencyPriceInUSD = newItem.quoteCurrencyPriceInUSD;
       }
     }
   }
 
+  Future<String?> fetchPriceInUSD(String symbol) async {
+    if (symbol.isEmpty || !RegExp(r'^[A-Z0-9]{1,20}$').hasMatch(symbol)) {
+      throw Exception('Invalid symbol format: $symbol');
+    }
+
+    final url = Uri.parse(
+        'https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}USDT');
+    final response = await httpClient.get(url);
+
+    // print('Request URL: $url');
+    // print('Response body: ${response.body}');
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load price in USD');
+    }
+
+    final json = jsonDecode(response.body);
+    return json['price'];
+  }
+
   String _extractBaseCurrency(String symbol) {
+    if (symbol.endsWith('USDT')) {
+      return symbol.substring(0, symbol.length - 4).toLowerCase();
+    }
+
     final pattern = RegExp(r'^([A-Z]{3,5})([A-Z]{3,4})$');
     final match = pattern.firstMatch(symbol);
 
     if (match != null) {
       return match.group(1)?.toLowerCase() ?? '';
+    }
+
+    return '';
+  }
+
+  String _extractQuoteCurrency(String symbol) {
+    if (symbol.endsWith('USDT')) {
+      return 'usdt';
+    }
+
+    final pattern = RegExp(r'^([A-Z]{3,5})([A-Z]{3,4})$');
+    final match = pattern.firstMatch(symbol);
+
+    if (match != null) {
+      return match.group(2)?.toLowerCase() ?? '';
     }
 
     return '';

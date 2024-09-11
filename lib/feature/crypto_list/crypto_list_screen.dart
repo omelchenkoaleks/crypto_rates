@@ -1,6 +1,8 @@
 import 'package:crypto_rates/feature/crypto_detail/crypto_detail_screen.dart';
 import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_cubit.dart';
 import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_state.dart';
+import 'package:crypto_rates/model/crypto_currency.dart';
+import 'package:crypto_rates/utility/logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -17,7 +19,7 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<CryptoListCubit>().fetchCryptoData();
+    // context.read<CryptoListCubit>().fetchCryptoData();
 
     _scrollController = ScrollController();
     _scrollController.addListener(() {
@@ -30,7 +32,11 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
   }
 
   String formatSymbol(String symbol) {
-    final pattern = RegExp(r'([A-Z]+)([A-Z]{3,4})$');
+    if (symbol.endsWith('USDT')) {
+      return '${symbol.substring(0, symbol.length - 4)} USDT';
+    }
+
+    final pattern = RegExp(r'([A-Z]+)([A-Z]{3})$');
     final match = pattern.firstMatch(symbol);
 
     if (match != null) {
@@ -40,6 +46,22 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
     }
 
     return symbol;
+  }
+
+  Future<void> _fetchAndNavigate(
+      BuildContext context, CryptoCurrency crypto) async {
+    await context.read<CryptoListCubit>().fetchPriceInUSD(
+          crypto.baseCurrencyPriceInUSD,
+          crypto.quoteCurrencyPriceInUSD,
+        );
+
+    if (!context.mounted) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => CryptoDetailScreen(crypto: crypto),
+      ),
+    );
   }
 
   @override
@@ -134,13 +156,13 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
                           ),
                     title: Text(formatSymbol(crypto.symbol)),
                     subtitle: Text('Price: ${crypto.price}'),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              CryptoDetailScreen(crypto: crypto),
-                        ),
-                      );
+                    onTap: () async {
+                      try {
+                        await _fetchAndNavigate(context, crypto);
+                      } catch (e) {
+                        logger.e(
+                            'Error on navigate to currency detail screen $e');
+                      }
                     },
                   );
                 },

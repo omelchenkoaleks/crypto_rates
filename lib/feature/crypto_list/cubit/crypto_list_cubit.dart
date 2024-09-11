@@ -89,4 +89,32 @@ class CryptoListCubit extends Cubit<CryptoListState> {
             crypto.symbol.toLowerCase().contains(query.toLowerCase()))
         .toList();
   }
+
+  Future<void> fetchPriceInUSD(String baseSymbol, String quoteSymbol) async {
+    try {
+      final baseCurrencyPriceInUSD =
+          await _repository.fetchPriceInUSD(baseSymbol.toUpperCase());
+
+      final quoteCurrencyPriceInUSD = quoteSymbol.toUpperCase() == 'USDT'
+          ? '1'
+          : await _repository.fetchPriceInUSD(quoteSymbol.toUpperCase());
+
+      if (baseCurrencyPriceInUSD != null && quoteCurrencyPriceInUSD != null) {
+        logger.i(
+            'Fetch base currency price in USDT: $baseCurrencyPriceInUSD | and quote currency price in USDT: $quoteCurrencyPriceInUSD');
+
+        emit(
+          state.copyWith(
+            baseCurrencyPrice: baseCurrencyPriceInUSD,
+            quoteCurrencyPrice: quoteCurrencyPriceInUSD,
+          ),
+        );
+      } else {
+        throw Exception('One of the fetched prices is null');
+      }
+    } catch (e) {
+      logger.e(
+          'Error fetching price in USD for base symbol $baseSymbol or quote symbol $quoteSymbol: $e');
+    }
+  }
 }
