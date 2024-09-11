@@ -22,7 +22,7 @@ class CryptoListCubit extends Cubit<CryptoListState> {
   }
 
   void startPeriodicRefresh() {
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (Timer timer) {
       fetchCryptoData();
     });
   }
