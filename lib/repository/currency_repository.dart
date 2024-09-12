@@ -119,6 +119,38 @@ class CurrencyRepository {
     return json['price'];
   }
 
+  // String _extractBaseCurrency(String symbol) {
+  //   if (symbol.endsWith('USDT') || symbol.endsWith('TUSD')) {
+  //     return symbol.substring(0, symbol.length - 4).toLowerCase();
+  //   }
+
+  //   final pattern = RegExp(r'^([A-Z]{3,5})([A-Z]{3,4})$');
+  //   final match = pattern.firstMatch(symbol);
+
+  //   if (match != null) {
+  //     return match.group(1)?.toLowerCase() ?? '';
+  //   }
+
+  //   return '';
+  // }
+
+  // String _extractQuoteCurrency(String symbol) {
+  //   if (symbol.endsWith('USDT')) {
+  //     return 'usdt';
+  //   } else if (symbol.endsWith('TUSD')) {
+  //     return 'tusd';
+  //   }
+
+  //   final pattern = RegExp(r'^([A-Z]{3,5})([A-Z]{3,4})$');
+  //   final match = pattern.firstMatch(symbol);
+
+  //   if (match != null) {
+  //     return match.group(2)?.toLowerCase() ?? '';
+  //   }
+
+  //   return '';
+  // }
+
   String _extractBaseCurrency(String symbol) {
     if (symbol.endsWith('USDT')) {
       return symbol.substring(0, symbol.length - 4).toLowerCase();
