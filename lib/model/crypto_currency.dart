@@ -1,19 +1,25 @@
 class CryptoCurrency {
   final String symbol;
   String price;
-  final String iconUrl;
+  final String baseCurrencyIconUrl;
+  final String quoteCurrencyIconUrl;
   String baseCurrencyPriceInUSD;
   String quoteCurrencyPriceInUSD;
 
-  CryptoCurrency.fromBinanceJson(Map<String, dynamic> json, this.iconUrl,
-      this.baseCurrencyPriceInUSD, this.quoteCurrencyPriceInUSD)
+  CryptoCurrency.fromBinanceJson(
+      Map<String, dynamic> json,
+      this.baseCurrencyIconUrl,
+      this.quoteCurrencyIconUrl,
+      this.baseCurrencyPriceInUSD,
+      this.quoteCurrencyPriceInUSD)
       : symbol = json['symbol'],
         price = json['price'];
 
   CryptoCurrency copyWith({
     String? symbol,
     String? price,
-    String? iconUrl,
+    String? baseCurrencyIconUrl,
+    String? quoteCurrencyIconUrl,
     String? baseCurrencyPriceInUSD,
     String? quoteCurrencyPriceInUSD,
   }) {
@@ -22,14 +28,10 @@ class CryptoCurrency {
         'symbol': symbol ?? this.symbol,
         'price': price ?? this.price,
       },
-      iconUrl ?? this.iconUrl,
+      baseCurrencyIconUrl ?? this.baseCurrencyIconUrl,
+      quoteCurrencyIconUrl ?? this.quoteCurrencyIconUrl,
       baseCurrencyPriceInUSD ?? this.baseCurrencyPriceInUSD,
       quoteCurrencyPriceInUSD ?? this.quoteCurrencyPriceInUSD,
     );
-  }
-
-  @override
-  String toString() {
-    return 'Symbol: $symbol, Pair Price: $price, Base in USD: $baseCurrencyPriceInUSD, Quote in USD: $quoteCurrencyPriceInUSD';
   }
 }

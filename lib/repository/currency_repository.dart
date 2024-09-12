@@ -37,13 +37,22 @@ class CurrencyRepository {
       final baseCurrency = _extractBaseCurrency(symbol);
       final quoteCurrency = _extractQuoteCurrency(symbol);
 
-      final iconUrl = iconData.firstWhere(
+      final baseCurrencyIconUrl = iconData.firstWhere(
         (coin) => coin['symbol'] == baseCurrency,
         orElse: () => {'image': ''},
       )['image'];
 
+      final quoteCurrencyIconUrl = iconData.firstWhere(
+        (coin) => coin['symbol'] == quoteCurrency,
+        orElse: () => {'image': ''},
+      )['image'];
+
       return CryptoCurrency.fromBinanceJson(
-          binanceJson, iconUrl ?? '', baseCurrency, quoteCurrency);
+          binanceJson,
+          baseCurrencyIconUrl ?? '',
+          quoteCurrencyIconUrl ?? '',
+          baseCurrency,
+          quoteCurrency);
     }).toList();
   }
 
@@ -66,7 +75,7 @@ class CurrencyRepository {
       final baseCurrencyPriceInUSD = await fetchPriceInUSD(baseCurrency);
       final quoteCurrencyPriceInUSD = await fetchPriceInUSD(quoteCurrency);
 
-      return CryptoCurrency.fromBinanceJson(json, '',
+      return CryptoCurrency.fromBinanceJson(json, '', '',
           baseCurrencyPriceInUSD ?? '', quoteCurrencyPriceInUSD ?? '');
     }).toList();
 

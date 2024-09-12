@@ -1,6 +1,7 @@
 import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_cubit.dart';
 import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_state.dart';
 import 'package:crypto_rates/model/crypto_currency.dart';
+import 'package:crypto_rates/utility/formatting.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -13,7 +14,7 @@ class CryptoDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(crypto.symbol),
+        title: Text(Formatting.formatSymbol(crypto.symbol)),
       ),
       body: BlocBuilder<CryptoListCubit, CryptoListState>(
         builder: (context, state) {
@@ -23,7 +24,7 @@ class CryptoDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Symbol: ${crypto.symbol}',
+                  'Pair: ${Formatting.formatSymbol(crypto.symbol)}',
                   style: const TextStyle(fontSize: 20),
                 ),
                 const SizedBox(height: 10),
