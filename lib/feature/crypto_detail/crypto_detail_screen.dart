@@ -14,30 +14,36 @@ class CryptoDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(Formatting.formatSymbol(crypto.symbol)),
+        title: Text('Currency pair: ${Formatting.formatSymbol(crypto.symbol)}'),
       ),
       body: BlocBuilder<CryptoListCubit, CryptoListState>(
         builder: (context, state) {
           return Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.only(
+              left: 36,
+              top: 24,
+              right: 16,
+              bottom: 16,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Pair: ${Formatting.formatSymbol(crypto.symbol)}',
-                  style: const TextStyle(fontSize: 20),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Price: ${crypto.price}',
+                  '${Formatting.formatSymbol(crypto.symbol)} price: ${crypto.price}',
                   style: const TextStyle(fontSize: 18),
                 ),
-                Text(
-                  'base ${crypto.baseCurrencyPriceInUSD}: ${state.baseCurrencyPrice}',
-                  style: const TextStyle(fontSize: 18),
+                const SizedBox(
+                  height: 8,
                 ),
                 Text(
-                  'quote ${crypto.quoteCurrencyPriceInUSD}: ${state.quoteCurrencyPrice}',
+                  'Base currency: ${crypto.baseCurrencyPriceInUSD.toUpperCase()} dollar price: ${state.baseCurrencyPrice}',
+                  style: const TextStyle(fontSize: 18),
+                ),
+                const SizedBox(
+                  height: 8,
+                ),
+                Text(
+                  'Quote currency ${crypto.quoteCurrencyPriceInUSD.toUpperCase()} dollar price: ${state.quoteCurrencyPrice}',
                   style: const TextStyle(fontSize: 18),
                 ),
               ],
