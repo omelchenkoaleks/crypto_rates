@@ -1,4 +1,4 @@
-import 'package:crypto_rates/model/crypto_currency.dart';
+import 'package:crypto_rates/feature/crypto_list/model/crypto_currency.dart';
 
 class CryptoListState {
   final bool isLoading;
@@ -9,6 +9,7 @@ class CryptoListState {
   final String searchQuery;
   final String baseCurrencyPrice;
   final String quoteCurrencyPrice;
+  final Set<String> allSymbols;
 
   CryptoListState({
     required this.isLoading,
@@ -19,6 +20,7 @@ class CryptoListState {
     required this.searchQuery,
     required this.baseCurrencyPrice,
     required this.quoteCurrencyPrice,
+    required this.allSymbols,
   });
 
   CryptoListState.initial()
@@ -29,7 +31,8 @@ class CryptoListState {
         currentPage = 0,
         searchQuery = '',
         baseCurrencyPrice = '',
-        quoteCurrencyPrice = '';
+        quoteCurrencyPrice = '',
+        allSymbols = {};
 
   CryptoListState copyWith({
     bool? isLoading,
@@ -40,6 +43,7 @@ class CryptoListState {
     String? searchQuery,
     String? baseCurrencyPrice,
     String? quoteCurrencyPrice,
+    Set<String>? allSymbols,
   }) {
     return CryptoListState(
       isLoading: isLoading ?? this.isLoading,
@@ -50,6 +54,7 @@ class CryptoListState {
       searchQuery: searchQuery ?? this.searchQuery,
       baseCurrencyPrice: baseCurrencyPrice ?? this.baseCurrencyPrice,
       quoteCurrencyPrice: quoteCurrencyPrice ?? this.quoteCurrencyPrice,
+      allSymbols: allSymbols ?? this.allSymbols,
     );
   }
 }

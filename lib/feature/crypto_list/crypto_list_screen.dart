@@ -1,7 +1,8 @@
-import 'package:crypto_rates/feature/crypto_detail/crypto_detail_screen.dart';
+import 'package:crypto_rates/feature/coin_detail/coin_detail_screen.dart';
+import 'package:crypto_rates/feature/crypto_list/crypto_pair_detail/crypto_pair_detail_screen.dart';
 import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_cubit.dart';
 import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_state.dart';
-import 'package:crypto_rates/model/crypto_currency.dart';
+import 'package:crypto_rates/feature/crypto_list/model/crypto_currency.dart';
 import 'package:crypto_rates/utility/formatting.dart';
 import 'package:crypto_rates/utility/logger.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,7 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
   void initState() {
     super.initState();
     // context.read<CryptoListCubit>().fetchCryptoData();
+    context.read<CryptoListCubit>().fetchAllSymbols();
 
     _scrollController = ScrollController();
     _scrollController.addListener(() {
@@ -43,7 +45,7 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => CryptoDetailScreen(crypto: crypto),
+        builder: (context) => CryptoPairDetailScreen(crypto: crypto),
       ),
     );
   }
@@ -112,93 +114,123 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            crypto.baseCurrencyIconUrl.isNotEmpty
-                                ? Image.network(
-                                    crypto.baseCurrencyIconUrl,
-                                    width: 40,
-                                    height: 40,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        width: 40,
-                                        height: 40,
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[300],
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Text(
-                                          Formatting.formatSymbol(
-                                              crypto.symbol),
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : Container(
-                                    width: 40,
-                                    height: 40,
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[300],
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Text(
-                                      Formatting.formatSymbol(crypto.symbol)
-                                          .split(' ')[0],
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                            GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => CoinDetailScreen(
+                                      symbol: crypto.baseCurrencyPriceInUSD
+                                          .toUpperCase(),
+                                      allSymbols: state.allSymbols,
                                     ),
                                   ),
+                                );
+                              },
+                              child: crypto.baseCurrencyIconUrl.isNotEmpty
+                                  ? Image.network(
+                                      crypto.baseCurrencyIconUrl,
+                                      width: 40,
+                                      height: 40,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return Container(
+                                          width: 40,
+                                          height: 40,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[300],
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Text(
+                                            Formatting.formatSymbol(
+                                                crypto.symbol),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : Container(
+                                      width: 40,
+                                      height: 40,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        Formatting.formatSymbol(crypto.symbol)
+                                            .split(' ')[0],
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                            ),
                             const SizedBox(
                               width: 16,
                             ),
-                            crypto.quoteCurrencyIconUrl.isNotEmpty
-                                ? Image.network(
-                                    crypto.quoteCurrencyIconUrl,
-                                    width: 40,
-                                    height: 40,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        width: 40,
-                                        height: 40,
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[300],
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Text(
-                                          Formatting.formatSymbol(
-                                              crypto.symbol),
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : Container(
-                                    width: 40,
-                                    height: 40,
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[300],
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Text(
-                                      Formatting.formatSymbol(crypto.symbol)
-                                          .split(' ')[1],
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                            GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => CoinDetailScreen(
+                                      symbol: crypto.quoteCurrencyPriceInUSD
+                                          .toUpperCase(),
+                                      allSymbols: state.allSymbols,
                                     ),
                                   ),
+                                );
+                              },
+                              child: crypto.quoteCurrencyIconUrl.isNotEmpty
+                                  ? Image.network(
+                                      crypto.quoteCurrencyIconUrl,
+                                      width: 40,
+                                      height: 40,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return Container(
+                                          width: 40,
+                                          height: 40,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[300],
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Text(
+                                            Formatting.formatSymbol(
+                                                crypto.symbol),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : Container(
+                                      width: 40,
+                                      height: 40,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        Formatting.formatSymbol(crypto.symbol)
+                                            .split(' ')[1],
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                            ),
                             const SizedBox(
                               width: 24,
                             ),

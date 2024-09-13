@@ -290,6 +290,7 @@
 
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+import 'package:crypto_rates/feature/coin_detail/cubit/coin_detail_cubit.dart';
 import 'package:crypto_rates/feature/crypto_list/crypto_list_screen.dart';
 import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_cubit.dart';
 import 'package:flutter/material.dart';
@@ -308,6 +309,9 @@ class MyApp extends StatelessWidget {
         providers: [
           BlocProvider(
             create: (context) => CryptoListCubit(),
+          ),
+          BlocProvider(
+            create: (context) => CoinDetailCubit(),
           ),
         ],
         child: const MaterialApp(

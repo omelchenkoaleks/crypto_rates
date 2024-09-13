@@ -1,14 +1,14 @@
 import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_cubit.dart';
 import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_state.dart';
-import 'package:crypto_rates/model/crypto_currency.dart';
+import 'package:crypto_rates/feature/crypto_list/model/crypto_currency.dart';
 import 'package:crypto_rates/utility/formatting.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class CryptoDetailScreen extends StatelessWidget {
+class CryptoPairDetailScreen extends StatelessWidget {
   final CryptoCurrency crypto;
 
-  const CryptoDetailScreen({super.key, required this.crypto});
+  const CryptoPairDetailScreen({super.key, required this.crypto});
 
   @override
   Widget build(BuildContext context) {

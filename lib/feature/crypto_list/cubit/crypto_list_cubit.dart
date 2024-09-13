@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_state.dart';
-import 'package:crypto_rates/model/crypto_currency.dart';
-import 'package:crypto_rates/repository/currency_repository.dart';
+import 'package:crypto_rates/feature/crypto_list/model/crypto_currency.dart';
+import 'package:crypto_rates/repository/currency_pair_repository.dart';
 import 'package:crypto_rates/utility/logger.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -12,7 +12,7 @@ class CryptoListCubit extends Cubit<CryptoListState> {
     startPeriodicRefresh();
   }
 
-  final CurrencyRepository _repository = CurrencyRepository();
+  final CurrencyPairRepository _repository = CurrencyPairRepository();
   Timer? _refreshTimer;
 
   @override
@@ -115,6 +115,16 @@ class CryptoListCubit extends Cubit<CryptoListState> {
     } catch (e) {
       logger.e(
           'Error fetching price in USD for base symbol $baseSymbol or quote symbol $quoteSymbol: $e');
+    }
+  }
+
+  Future<void> fetchAllSymbols() async {
+    try {
+      final Set<String> symbols = await _repository.fetchAllSymbols();
+
+      emit(state.copyWith(allSymbols: symbols));
+    } catch (e) {
+      logger.e('Error fetching symbols: $e');
     }
   }
 }

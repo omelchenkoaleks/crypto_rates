@@ -1,12 +1,12 @@
 import 'dart:convert';
 
-import 'package:crypto_rates/model/crypto_currency.dart';
+import 'package:crypto_rates/feature/crypto_list/model/crypto_currency.dart';
 import 'package:http/http.dart' as http;
 
-class CurrencyRepository {
+class CurrencyPairRepository {
   final http.Client httpClient;
 
-  CurrencyRepository({http.Client? httpClient})
+  CurrencyPairRepository({http.Client? httpClient})
       : httpClient = httpClient ?? http.Client();
 
   Future<List<CryptoCurrency>> fetchCryptoData(
@@ -108,9 +108,6 @@ class CurrencyRepository {
         'https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}USDT');
     final response = await httpClient.get(url);
 
-    // print('Request URL: $url');
-    // print('Response body: ${response.body}');
-
     if (response.statusCode != 200) {
       throw Exception('Failed to load price in USD');
     }
@@ -119,40 +116,11 @@ class CurrencyRepository {
     return json['price'];
   }
 
-  // String _extractBaseCurrency(String symbol) {
-  //   if (symbol.endsWith('USDT') || symbol.endsWith('TUSD')) {
-  //     return symbol.substring(0, symbol.length - 4).toLowerCase();
-  //   }
-
-  //   final pattern = RegExp(r'^([A-Z]{3,5})([A-Z]{3,4})$');
-  //   final match = pattern.firstMatch(symbol);
-
-  //   if (match != null) {
-  //     return match.group(1)?.toLowerCase() ?? '';
-  //   }
-
-  //   return '';
-  // }
-
-  // String _extractQuoteCurrency(String symbol) {
-  //   if (symbol.endsWith('USDT')) {
-  //     return 'usdt';
-  //   } else if (symbol.endsWith('TUSD')) {
-  //     return 'tusd';
-  //   }
-
-  //   final pattern = RegExp(r'^([A-Z]{3,5})([A-Z]{3,4})$');
-  //   final match = pattern.firstMatch(symbol);
-
-  //   if (match != null) {
-  //     return match.group(2)?.toLowerCase() ?? '';
-  //   }
-
-  //   return '';
-  // }
-
   String _extractBaseCurrency(String symbol) {
-    if (symbol.endsWith('USDT')) {
+    if (symbol.endsWith('USDT') ||
+        symbol.endsWith('TUSD') ||
+        symbol.endsWith('BUSD') ||
+        symbol.endsWith('USDC')) {
       return symbol.substring(0, symbol.length - 4).toLowerCase();
     }
 
@@ -169,6 +137,12 @@ class CurrencyRepository {
   String _extractQuoteCurrency(String symbol) {
     if (symbol.endsWith('USDT')) {
       return 'usdt';
+    } else if (symbol.endsWith('TUSD')) {
+      return 'tusd';
+    } else if (symbol.endsWith('BUSD')) {
+      return 'busd';
+    } else if (symbol.endsWith('USDC')) {
+      return 'usdc';
     }
 
     final pattern = RegExp(r'^([A-Z]{3,5})([A-Z]{3,4})$');
@@ -179,5 +153,30 @@ class CurrencyRepository {
     }
 
     return '';
+  }
+
+  Future<Set<String>> fetchAllSymbols() async {
+    final response = await httpClient
+        .get(Uri.parse('https://api.binance.com/api/v3/ticker/price'));
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load crypto data');
+    }
+
+    List<dynamic> binanceData = json.decode(response.body);
+
+    Set<String> symbols = {};
+
+    for (var pair in binanceData) {
+      final symbol = pair['symbol'];
+
+      final baseCurrency = _extractBaseCurrency(symbol);
+      final quoteCurrency = _extractQuoteCurrency(symbol);
+
+      symbols.add(baseCurrency.toUpperCase());
+      symbols.add(quoteCurrency.toUpperCase());
+    }
+
+    return symbols;
   }
 }

@@ -4,6 +4,18 @@ class Formatting {
       return '${symbol.substring(0, symbol.length - 4)} USDT';
     }
 
+    if (symbol.endsWith('TUSD')) {
+      return '${symbol.substring(0, symbol.length - 4)} TUSD';
+    }
+
+    if (symbol.endsWith('BUSD')) {
+      return '${symbol.substring(0, symbol.length - 4)} BUSD';
+    }
+
+    if (symbol.endsWith('USDC')) {
+      return '${symbol.substring(0, symbol.length - 4)} USDC';
+    }
+
     final pattern = RegExp(r'([A-Z]+)([A-Z]{3})$');
     final match = pattern.firstMatch(symbol);
 
