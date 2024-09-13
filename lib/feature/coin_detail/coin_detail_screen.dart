@@ -18,12 +18,31 @@ class CoinDetailScreen extends StatefulWidget {
 }
 
 class _CoinDetailScreenState extends State<CoinDetailScreen> {
+  late ScrollController _scrollController;
+
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
     context
         .read<CoinDetailCubit>()
         .fetchExchangeRates(widget.symbol, widget.allSymbols);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent &&
+        !context.read<CoinDetailCubit>().state.isLoading) {
+      context.read<CoinDetailCubit>().fetchExchangeRates(
+          widget.symbol, widget.allSymbols,
+          isNextPage: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -34,45 +53,40 @@ class _CoinDetailScreenState extends State<CoinDetailScreen> {
       ),
       body: BlocBuilder<CoinDetailCubit, CoinDetailState>(
         builder: (context, state) {
-          if (state.isLoading) {
+          if (state.isLoading && state.exchangeRates.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           } else if (state.error.isNotEmpty) {
             return Center(child: Text('Error: ${state.error}'));
           } else {
+            final filteredRates = state.exchangeRates
+                .where((exchangeRate) => exchangeRate.rate != 0)
+                .toList();
+
             return Padding(
               padding: const EdgeInsets.all(16.0),
               child: ListView.builder(
-                itemCount: state.exchangeRates.length,
+                controller: _scrollController,
+                itemCount: state.hasReachedMax
+                    ? filteredRates.length
+                    : filteredRates.length + 1,
                 itemBuilder: (context, index) {
-                  final exchangeRate = state.exchangeRates[index];
-                  return ListTile(
-                    title: Text(exchangeRate.symbol),
-                    subtitle: Text(
-                        '1 ${widget.symbol} = ${exchangeRate.rate} ${exchangeRate.symbol}'),
-                  );
+                  if (index >= filteredRates.length) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  } else {
+                    final exchangeRate = filteredRates[index];
+                    return ListTile(
+                      title: Text(exchangeRate.symbol),
+                      subtitle: Text(
+                          '1 ${widget.symbol} = ${exchangeRate.rate} ${exchangeRate.symbol}'),
+                    );
+                  }
                 },
               ),
             );
           }
-          // return Padding(
-          //   padding: const EdgeInsets.only(
-          //     left: 36,
-          //     top: 24,
-          //     right: 16,
-          //     bottom: 16,
-          //   ),
-          //   child: ListView.builder(
-          //     itemCount: widget.allSymbols.length,
-          //     itemBuilder: (context, index) {
-          //       final symbolsList = widget.allSymbols.toList();
-          //       final symbol = symbolsList[index];
-
-          //       return ListTile(
-          //         title: Text(symbol),
-          //       );
-          //     },
-          //   ),
-          // );
         },
       ),
     );
