@@ -37,22 +37,33 @@ class CurrencyPairRepository {
       final baseCurrency = _extractBaseCurrency(symbol);
       final quoteCurrency = _extractQuoteCurrency(symbol);
 
-      final baseCurrencyIconUrl = iconData.firstWhere(
-        (coin) => coin['symbol'] == baseCurrency,
-        orElse: () => {'image': ''},
-      )['image'];
+      final baseCurrencyData = iconData.firstWhere(
+        (coin) =>
+            coin['symbol'].toString().toLowerCase() ==
+            baseCurrency.toLowerCase(),
+        orElse: () => {'image': '', 'name': baseCurrency},
+      );
+      final baseCurrencyIconUrl = baseCurrencyData['image'] ?? '';
+      final baseCurrencyName = baseCurrencyData['name'] ?? baseCurrency;
 
-      final quoteCurrencyIconUrl = iconData.firstWhere(
-        (coin) => coin['symbol'] == quoteCurrency,
-        orElse: () => {'image': ''},
-      )['image'];
+      final quoteCurrencyData = iconData.firstWhere(
+        (coin) =>
+            coin['symbol'].toString().toLowerCase() ==
+            quoteCurrency.toLowerCase(),
+        orElse: () => {'image': '', 'name': quoteCurrency},
+      );
+      final quoteCurrencyIconUrl = quoteCurrencyData['image'] ?? '';
+      final quoteCurrencyName = quoteCurrencyData['name'] ?? quoteCurrency;
 
       return CryptoCurrency.fromBinanceJson(
-          binanceJson,
-          baseCurrencyIconUrl ?? '',
-          quoteCurrencyIconUrl ?? '',
-          baseCurrency,
-          quoteCurrency);
+        binanceJson,
+        baseCurrencyIconUrl ?? '',
+        quoteCurrencyIconUrl ?? '',
+        baseCurrency,
+        quoteCurrency,
+        baseCurrencyName,
+        quoteCurrencyName,
+      );
     }).toList();
   }
 
@@ -75,8 +86,15 @@ class CurrencyPairRepository {
       final baseCurrencyPriceInUSD = await fetchPriceInUSD(baseCurrency);
       final quoteCurrencyPriceInUSD = await fetchPriceInUSD(quoteCurrency);
 
-      return CryptoCurrency.fromBinanceJson(json, '', '',
-          baseCurrencyPriceInUSD ?? '', quoteCurrencyPriceInUSD ?? '');
+      return CryptoCurrency.fromBinanceJson(
+        json,
+        '',
+        '',
+        baseCurrencyPriceInUSD ?? '',
+        quoteCurrencyPriceInUSD ?? '',
+        '',
+        '',
+      );
     }).toList();
 
     final List<CryptoCurrency> newItems = await Future.wait(newItemsFutures);

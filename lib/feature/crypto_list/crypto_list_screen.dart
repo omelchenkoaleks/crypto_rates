@@ -1,4 +1,5 @@
 import 'package:crypto_rates/feature/coin_detail/coin_detail_screen.dart';
+import 'package:crypto_rates/feature/coin_detail/model/coin_detail.dart';
 import 'package:crypto_rates/feature/crypto_list/crypto_pair_detail/crypto_pair_detail_screen.dart';
 import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_cubit.dart';
 import 'package:crypto_rates/feature/crypto_list/cubit/crypto_list_state.dart';
@@ -120,8 +121,12 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (context) => CoinDetailScreen(
-                                      symbol: crypto.baseCurrencyPriceInUSD
-                                          .toUpperCase(),
+                                      coinDetail: CoinDetail(
+                                        symbol: crypto.baseCurrencyPriceInUSD
+                                            .toUpperCase(),
+                                        logoUrl: crypto.baseCurrencyIconUrl,
+                                        fullName: crypto.baseCurrencyName,
+                                      ),
                                       allSymbols: state.allSymbols,
                                     ),
                                   ),
@@ -180,8 +185,12 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (context) => CoinDetailScreen(
-                                      symbol: crypto.quoteCurrencyPriceInUSD
-                                          .toUpperCase(),
+                                      coinDetail: CoinDetail(
+                                        symbol: crypto.quoteCurrencyPriceInUSD
+                                            .toUpperCase(),
+                                        logoUrl: crypto.quoteCurrencyIconUrl,
+                                        fullName: crypto.quoteCurrencyName,
+                                      ),
                                       allSymbols: state.allSymbols,
                                     ),
                                   ),
